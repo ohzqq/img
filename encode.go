@@ -1,6 +1,8 @@
 package img
 
 import (
+	"bytes"
+	"encoding/base64"
 	"image"
 	"image/color"
 	"image/draw"
@@ -34,6 +36,7 @@ type encodeConfig struct {
 	tiffCompressionType   TIFFCompression
 	webpUseExtendedFormat bool
 	background            color.Color
+	toBase64              bool
 	pages                 []image.Image
 }
 
@@ -70,6 +73,24 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 		img = i
 	}
 
+	if f.toBase64 {
+		var buf bytes.Buffer
+		err := f.encode(&buf, img)
+		if err != nil {
+			return err
+		}
+		b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+		_, err = w.Write([]byte(b64))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return f.encode(w, img)
+}
+
+func (f *Encoder) encode(w io.Writer, img image.Image) error {
 	switch f.Format {
 	case JPEG:
 		if nrgba, ok := img.(*image.NRGBA); ok && nrgba.Opaque() {
@@ -106,9 +127,6 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 
 	case WEBP:
 		return nativewebp.Encode(w, img, &nativewebp.Options{UseExtendedFormat: cfg.webpUseExtendedFormat})
-
-	case HTML:
-	case BASE64:
 	}
 
 	return image.ErrFormat
@@ -181,5 +199,13 @@ func BackgroundColor(color color.Color) EncodeOption {
 func PDFPages(pages []image.Image) EncodeOption {
 	return func(c *encodeConfig) {
 		c.pages = pages
+	}
+}
+
+// Base64 returns an EncodeOption that encodes the format to Base64.
+func Base64(format Format) EncodeOption {
+	return func(c *encodeConfig) {
+		c.toBase64 = true
+		c.Format = format
 	}
 }
