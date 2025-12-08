@@ -37,6 +37,7 @@ const (
 	PDF
 	WEBP
 	HTML
+	BASE64
 )
 
 var formatExts = [][]string{
@@ -48,6 +49,7 @@ var formatExts = [][]string{
 	{".pdf"},
 	{".webp"},
 	{".html"},
+	{".b64", ".uue"},
 }
 
 func (f Format) String() (format string) {
@@ -60,7 +62,8 @@ func (f Format) String() (format string) {
 }
 
 // FormatFromExtension parses image format from filename extension:
-// "jpg" (or "jpeg"), "png", "gif", "tif" (or "tiff"), "bmp", "pdf" and "webp" are supported.
+// ".jpg" (or ".jpeg"), ".png", ".gif", ".tif" (or ".tiff"), ".bmp", ".pdf",
+// ".b64 (or ".uue") and ".webp" are supported.
 func FormatFromExtension(ext string) (Format, error) {
 	ext = strings.ToLower(ext)
 	for index, exts := range formatExts {
@@ -68,7 +71,6 @@ func FormatFromExtension(ext string) (Format, error) {
 			return Format(index), nil
 		}
 	}
-
 	return -1, image.ErrFormat
 }
 
