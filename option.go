@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 )
 
-var defaultFormat = &FormatOption{Format: JPEG}
+var defaultFormat = &Encoder{Format: JPEG}
 
 // Options represents options that can be used to configure a image operation.
 type Options struct {
-	Format *FormatOption
+	Format *Encoder
 }
 
 // NewOptions creates a new option with default setting.
@@ -20,7 +20,7 @@ func NewOptions() *Options {
 
 // SetFormat sets the value for the Format field.
 func (opts *Options) SetFormat(f Format, options ...EncodeOption) *Options {
-	opts.Format = &FormatOption{f, options}
+	opts.Format = &Encoder{f, options}
 	return opts
 }
 

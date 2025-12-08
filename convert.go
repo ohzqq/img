@@ -43,13 +43,13 @@ func Open(file string) (image.Image, error) {
 
 // Write image according format option
 // https://github.com/sunshineplan/imgconv
-func Write(w io.Writer, base image.Image, option *FormatOption) error {
+func Write(w io.Writer, base image.Image, option *Encoder) error {
 	return option.Encode(w, base)
 }
 
 // Save saves image according format option
 // https://github.com/sunshineplan/imgconv
-func Save(output string, base image.Image, option *FormatOption) error {
+func Save(output string, base image.Image, option *Encoder) error {
 	f, err := os.Create(output)
 	if err != nil {
 		return err
