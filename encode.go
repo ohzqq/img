@@ -57,6 +57,9 @@ func NewEncoder(format Format, opts ...EncodeOption) *Encoder {
 // Save saves image according to the encoder
 // https://github.com/sunshineplan/imgconv
 func (enc *Encoder) Save(output string, base image.Image) error {
+	if !HasExt(output) {
+		output = output + enc.Format.String()
+	}
 	f, err := os.Create(output)
 	if err != nil {
 		return err
@@ -69,6 +72,10 @@ func (enc *Encoder) Save(output string, base image.Image) error {
 func (enc *Encoder) SaveAll(output string, images []image.Image) error {
 	enc.batch = true
 	ext := filepath.Ext(output)
+	if ext == "" {
+		ext = enc.Format.String()
+		output = output + ext
+	}
 	dir, name := filepath.Split(output)
 	base := strings.TrimSuffix(name, ext)
 	if enc.batch {

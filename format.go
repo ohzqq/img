@@ -4,11 +4,13 @@ import (
 	"encoding"
 	"fmt"
 	"image"
+	"io"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/hhrutter/tiff"
+	"github.com/samber/lo"
 )
 
 var (
@@ -54,6 +56,18 @@ func (f Format) String() (format string) {
 	return formatExts[f][0]
 }
 
+func (f Format) Save(output string, img image.Image, opts ...EncodeOption) error {
+	return NewEncoder(f, opts...).Save(output, img)
+}
+
+func (f Format) SaveAll(output string, imgs []image.Image, opts ...EncodeOption) error {
+	return NewEncoder(f, opts...).SaveAll(output, imgs)
+}
+
+func (f Format) Encode(w io.Writer, img image.Image, opts ...EncodeOption) error {
+	return NewEncoder(f, opts...).Encode(w, img)
+}
+
 // FormatFromExtension parses image format from filename extension:
 // ".jpg" (or ".jpeg"), ".png", ".gif", ".tif" (or ".tiff"), ".bmp", ".pdf",
 // ".b64 (or ".uue") and ".webp" are supported.
@@ -65,6 +79,22 @@ func FormatFromExtension(ext string) (Format, error) {
 		}
 	}
 	return -1, image.ErrFormat
+}
+
+func HasExt(name string) bool {
+	return filepath.Ext(name) != ""
+}
+
+func Ext(name string) (string, bool) {
+	ext := strings.ToLower(filepath.Ext(name))
+	return ext, ext != ""
+}
+
+func IsValidFormat(name string) bool {
+	if !HasExt(name) {
+		return false
+	}
+	return slices.Contains(lo.Flatten(formatExts), filepath.Ext(strings.ToLower(name)))
 }
 
 func FormatFromFilename(name string) (Format, error) {

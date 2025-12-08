@@ -5,6 +5,31 @@ import (
 	"testing"
 )
 
+func TestValidFormat(t *testing.T) {
+	testNames := []string{
+		"toot.ppp",
+		"toot.png",
+	}
+	wants := []bool{false, true}
+	for i, test := range testNames {
+		if got := IsValidFormat(test); got != wants[i] {
+			t.Errorf("format isn't valid %v\n", got)
+		}
+	}
+}
+
+func TestSaveFormat(t *testing.T) {
+	tstImg := `testdata/video-001.png`
+	img, err := Open(tstImg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = GIF.Save(`testdata/format_save`, img)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestBase64(t *testing.T) {
 	tstImg := `testdata/video-001.png`
 	img, err := Open(tstImg)

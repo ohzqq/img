@@ -17,6 +17,7 @@ require (
 	github.com/ohzqq/imgconv v0.0.0-20250610163936-ef40d763b932 // indirect
 	github.com/pdfcpu/pdfcpu v0.11.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/samber/lo v1.52.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
