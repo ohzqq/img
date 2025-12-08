@@ -15,22 +15,16 @@ import (
 
 	"github.com/HugoSmits86/nativewebp"
 	"github.com/hhrutter/tiff"
-	"github.com/spf13/cast"
 	"github.com/sunshineplan/pdf"
 	"golang.org/x/image/bmp"
 )
 
 // Encoder is format option
 type Encoder struct {
-	Format       Format
-	EncodeOption []EncodeOption
-}
-
-// EncodeOption sets an optional parameter for the Encode and Save functions.
-// https://github.com/disintegration/imaging
-type EncodeOption func(*encodeConfig)
-
-type encodeConfig struct {
+	Format                Format
+	EncodeOption          []EncodeOption
+	batch                 bool
+	padding               string
 	Quality               int
 	gifNumColors          int
 	gifQuantizer          draw.Quantizer
@@ -45,48 +39,34 @@ type encodeConfig struct {
 	webpAnimation         *nativewebp.Animation
 }
 
-var defaultEncodeConfig = encodeConfig{
-	Quality:             75,
-	gifNumColors:        256,
-	gifQuantizer:        nil,
-	gifDrawer:           nil,
-	pngCompressionLevel: png.DefaultCompression,
-	tiffCompressionType: TIFFDeflate,
-	webpAnimation:       &nativewebp.Animation{},
-	//background:          color.Transparent,
-}
-
 // NewEncoder initializes an encoder.
 func NewEncoder(format Format, opts ...EncodeOption) *Encoder {
-	return &Encoder{
-		Format:       format,
-		EncodeOption: opts,
+	enc := defaultEncodeConfig
+	enc.Format = format
+	for _, option := range opts {
+		option(enc)
 	}
+	return enc
 }
 
 // Encode writes the image img to w in the specified format (JPEG, PNG, GIF,
 // TIFF, BMP, PDF, WEBP, HTML, or BASE64).
 func (f *Encoder) Encode(w io.Writer, img image.Image) error {
-	cfg := defaultEncodeConfig
-	for _, option := range f.EncodeOption {
-		option(&cfg)
-	}
-
-	if cfg.background != nil {
+	if f.background != nil {
 		i := image.NewNRGBA(img.Bounds())
-		draw.Draw(i, i.Bounds(), &image.Uniform{cfg.background}, img.Bounds().Min, draw.Src)
+		draw.Draw(i, i.Bounds(), &image.Uniform{f.background}, img.Bounds().Min, draw.Src)
 		draw.Draw(i, i.Bounds(), img, img.Bounds().Min, draw.Over)
 		img = i
 	}
 
-	if cfg.toBase64 {
+	if f.toBase64 {
 		var buf bytes.Buffer
-		err := f.encode(&buf, img, cfg)
+		err := f.encode(&buf, img)
 		if err != nil {
 			return err
 		}
 		b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-		switch cfg.base64Fmt {
+		switch f.base64Fmt {
 		case BASE64:
 		case HTML:
 			b64 = dataURL(f.Format, b64, true)
@@ -100,10 +80,10 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 		return nil
 	}
 
-	return f.encode(w, img, cfg)
+	return f.encode(w, img)
 }
 
-func (f *Encoder) encode(w io.Writer, img image.Image, cfg encodeConfig) error {
+func (f *Encoder) encode(w io.Writer, img image.Image) error {
 	switch f.Format {
 	case JPEG:
 		if nrgba, ok := img.(*image.NRGBA); ok && nrgba.Opaque() {
@@ -112,34 +92,38 @@ func (f *Encoder) encode(w io.Writer, img image.Image, cfg encodeConfig) error {
 				Stride: nrgba.Stride,
 				Rect:   nrgba.Rect,
 			}
-			return jpeg.Encode(w, rgba, &jpeg.Options{Quality: cfg.Quality})
+			return jpeg.Encode(w, rgba, &jpeg.Options{Quality: f.Quality})
 		}
-		return jpeg.Encode(w, img, &jpeg.Options{Quality: cfg.Quality})
+		return jpeg.Encode(w, img, &jpeg.Options{Quality: f.Quality})
 
 	case PNG:
-		encoder := png.Encoder{CompressionLevel: cfg.pngCompressionLevel}
+		encoder := png.Encoder{CompressionLevel: f.pngCompressionLevel}
 		return encoder.Encode(w, img)
 
 	case GIF:
 		return gif.Encode(w, img, &gif.Options{
-			NumColors: cfg.gifNumColors,
-			Quantizer: cfg.gifQuantizer,
-			Drawer:    cfg.gifDrawer,
+			NumColors: f.gifNumColors,
+			Quantizer: f.gifQuantizer,
+			Drawer:    f.gifDrawer,
 		})
 
 	case TIFF:
-		return tiff.Encode(w, img, &tiff.Options{Compression: cfg.tiffCompressionType.value(), Predictor: true})
+		return tiff.Encode(w, img, &tiff.Options{Compression: f.tiffCompressionType.value(), Predictor: true})
 
 	case BMP:
 		return bmp.Encode(w, img)
 
 	case PDF:
 		pages := []image.Image{img}
-		pages = append(pages, cfg.pages...)
-		return pdf.Encode(w, pages, &pdf.Options{Quality: cfg.Quality})
+		pages = append(pages, f.pages...)
+		return pdf.Encode(w, pages, &pdf.Options{Quality: f.Quality})
 
 	case WEBP:
-		return nativewebp.Encode(w, img, &nativewebp.Options{UseExtendedFormat: cfg.webpUseExtendedFormat})
+		webpOpts := &nativewebp.Options{UseExtendedFormat: f.webpUseExtendedFormat}
+		if len(f.webpAnimation.Images) > 0 {
+			return nativewebp.EncodeAll(w, f.webpAnimation, webpOpts)
+		}
+		return nativewebp.Encode(w, img, webpOpts)
 	}
 
 	return image.ErrFormat
@@ -158,124 +142,4 @@ func dataURL(f Format, b64 string, html bool) string {
 		b.WriteString(`"></img>`)
 	}
 	return b.String()
-}
-
-// Quality returns an EncodeOption that sets the output JPEG or PDF quality.
-// Quality ranges from 1 to 100 inclusive, higher is better.
-func Quality(quality int) EncodeOption {
-	return func(c *encodeConfig) {
-		c.Quality = quality
-	}
-}
-
-// GIFNumColors returns an EncodeOption that sets the maximum number of colors
-// used in the GIF-encoded image. It ranges from 1 to 256.  Default is 256.
-func GIFNumColors(numColors int) EncodeOption {
-	return func(c *encodeConfig) {
-		c.gifNumColors = numColors
-	}
-}
-
-// GIFQuantizer returns an EncodeOption that sets the quantizer that is used to produce
-// a palette of the GIF-encoded image.
-func GIFQuantizer(quantizer draw.Quantizer) EncodeOption {
-	return func(c *encodeConfig) {
-		c.gifQuantizer = quantizer
-	}
-}
-
-// GIFDrawer returns an EncodeOption that sets the drawer that is used to convert
-// the source image to the desired palette of the GIF-encoded image.
-func GIFDrawer(drawer draw.Drawer) EncodeOption {
-	return func(c *encodeConfig) {
-		c.gifDrawer = drawer
-	}
-}
-
-// PNGCompressionLevel returns an EncodeOption that sets the compression level
-// of the PNG-encoded image. Default is png.DefaultCompression.
-func PNGCompressionLevel(level png.CompressionLevel) EncodeOption {
-	return func(c *encodeConfig) {
-		c.pngCompressionLevel = level
-	}
-}
-
-// TIFFCompressionType returns an EncodeOption that sets the compression type
-// of the TIFF-encoded image. Default is tiff.Deflate.
-func TIFFCompressionType(compressionType TIFFCompression) EncodeOption {
-	return func(c *encodeConfig) {
-		c.tiffCompressionType = compressionType
-	}
-}
-
-// WEBPUseExtendedFormat returns EncodeOption that determines whether to use extended format
-// of the WEBP-encoded image. Default is false.
-func WEBPUseExtendedFormat(b bool) EncodeOption {
-	return func(c *encodeConfig) {
-		c.webpUseExtendedFormat = b
-	}
-}
-
-// WEBPAnimationDurations returns an EncodeOption that sets the webp animation
-// durations.
-func WEBPAnimationDurations(dur []int) EncodeOption {
-	return func(c *encodeConfig) {
-		c.webpAnimation.Durations = cast.ToUintSlice(dur)
-	}
-}
-
-// WEBPAnimationDisposals returns an EncodeOption that sets the webp animation
-// durations.
-func WEBPAnimationDisposals(disposals []int) EncodeOption {
-	return func(c *encodeConfig) {
-		c.webpAnimation.Disposals = cast.ToUintSlice(disposals)
-	}
-}
-
-// WEBPAnimationLoopCount returns an EncodeOption that sets the webp animation
-// durations.
-func WEBPAnimationLoopCount(loops int) EncodeOption {
-	return func(c *encodeConfig) {
-		c.webpAnimation.LoopCount = cast.ToUint16(loops)
-	}
-}
-
-// WEBPAnimationBackgroundColor returns an EncodeOption that sets the webp animation
-// durations.
-// Canvas background color in BGRA order, used for clear operations.
-func WEBPAnimationBackgroundColor(color uint32) EncodeOption {
-	return func(c *encodeConfig) {
-		c.webpAnimation.BackgroundColor = color
-	}
-}
-
-// BackgroundColor returns an EncodeOption that sets the background color.
-func BackgroundColor(color color.Color) EncodeOption {
-	return func(c *encodeConfig) {
-		c.background = color
-	}
-}
-
-// PDFPages returns an EncodeOption that sets multiple pages for pdf conversion.
-func PDFPages(pages []image.Image) EncodeOption {
-	return func(c *encodeConfig) {
-		c.pages = pages
-	}
-}
-
-// Base64 returns an EncodeOption that encodes the format to Base64.
-func Base64(outFmt Format) EncodeOption {
-	return func(c *encodeConfig) {
-		c.toBase64 = true
-		c.base64Fmt = outFmt
-	}
-}
-
-func init() {
-	for _, ext := range []string{".tif", ".tiff"} {
-		mime.AddExtensionType(ext, `image/tiff`)
-	}
-	for _, ext := range []string{".b64", "uue"} {
-		mime.AddExtensionType(ext, "text/plain")
-	}
 }

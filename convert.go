@@ -1,9 +1,12 @@
 package img
 
 import (
+	"fmt"
 	"image"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 // Decode reads an image from r.
@@ -41,20 +44,42 @@ func Open(file string) (image.Image, error) {
 	return Decode(f)
 }
 
-// Write image according format option
+// Write image according to the encoder
 // https://github.com/sunshineplan/imgconv
-func Write(w io.Writer, base image.Image, option *Encoder) error {
-	return option.Encode(w, base)
+func Write(w io.Writer, base image.Image, encoder *Encoder) error {
+	return encoder.Encode(w, base)
 }
 
-// Save saves image according format option
+// Save saves image according to the encoder
 // https://github.com/sunshineplan/imgconv
-func Save(output string, base image.Image, option *Encoder) error {
+func Save(output string, base image.Image, encoder *Encoder) error {
 	f, err := os.Create(output)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+	return encoder.Encode(f, base)
+}
 
-	return option.Encode(f, base)
+// SaveAll saves images according to the encoder
+// https://github.com/sunshineplan/imgconv
+func SaveAll(output string, encoder *Encoder) error {
+	ext := filepath.Ext(output)
+	dir, name := filepath.Split(output)
+	base := strings.TrimSuffix(name, ext)
+	if encoder.batch {
+		for i, img := range encoder.pages {
+			n := fmt.Sprintf(base+encoder.padding+ext, i)
+			f, err := os.Create(filepath.Join(dir, n))
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			err = encoder.Encode(f, img)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
