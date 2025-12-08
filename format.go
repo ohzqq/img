@@ -29,6 +29,7 @@ const (
 	WEBP
 	HTML
 	BASE64
+	URL
 )
 
 var formatExts = [][]string{

@@ -10,6 +10,8 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"mime"
+	"strings"
 
 	"github.com/HugoSmits86/nativewebp"
 	"github.com/hhrutter/tiff"
@@ -36,8 +38,9 @@ type encodeConfig struct {
 	tiffCompressionType   TIFFCompression
 	webpUseExtendedFormat bool
 	background            color.Color
-	toBase64              bool
 	pages                 []image.Image
+	toBase64              bool
+	base64Fmt             Format
 }
 
 var defaultEncodeConfig = encodeConfig{
@@ -73,13 +76,20 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 		img = i
 	}
 
-	if f.toBase64 {
+	if cfg.toBase64 {
 		var buf bytes.Buffer
-		err := f.encode(&buf, img)
+		err := f.encode(&buf, img, cfg)
 		if err != nil {
 			return err
 		}
 		b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+		switch cfg.base64Fmt {
+		case BASE64:
+		case HTML:
+			b64 = dataURL(f.Format, b64, true)
+		case URL:
+			b64 = dataURL(f.Format, b64, false)
+		}
 		_, err = w.Write([]byte(b64))
 		if err != nil {
 			return err
@@ -87,10 +97,25 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 		return nil
 	}
 
-	return f.encode(w, img)
+	return f.encode(w, img, cfg)
 }
 
-func (f *Encoder) encode(w io.Writer, img image.Image) error {
+func dataURL(f Format, b64 string, html bool) string {
+	var b strings.Builder
+	if html {
+		b.WriteString(`<img src="`)
+	}
+	b.WriteString(`data:`)
+	b.WriteString(mime.TypeByExtension(f.String()))
+	b.WriteString(`;base64,`)
+	b.WriteString(b64)
+	if html {
+		b.WriteString(`"></img>`)
+	}
+	return b.String()
+}
+
+func (f *Encoder) encode(w io.Writer, img image.Image, cfg encodeConfig) error {
 	switch f.Format {
 	case JPEG:
 		if nrgba, ok := img.(*image.NRGBA); ok && nrgba.Opaque() {
@@ -203,9 +228,18 @@ func PDFPages(pages []image.Image) EncodeOption {
 }
 
 // Base64 returns an EncodeOption that encodes the format to Base64.
-func Base64(format Format) EncodeOption {
+func Base64(outFmt Format) EncodeOption {
 	return func(c *encodeConfig) {
 		c.toBase64 = true
-		c.Format = format
+		c.base64Fmt = outFmt
+	}
+}
+
+func init() {
+	for _, ext := range []string{".tif", ".tiff"} {
+		mime.AddExtensionType(ext, `image/tiff`)
+	}
+	for _, ext := range []string{".b64", "uue"} {
+		mime.AddExtensionType(ext, "text/plain")
 	}
 }
