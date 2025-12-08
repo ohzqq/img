@@ -1,4 +1,4 @@
-package imgconv
+package img
 
 import (
 	"encoding"
@@ -36,6 +36,7 @@ const (
 	BMP
 	PDF
 	WEBP
+	HTML
 )
 
 var formatExts = [][]string{
@@ -46,6 +47,7 @@ var formatExts = [][]string{
 	{".bmp"},
 	{".pdf"},
 	{".webp"},
+	{".html"},
 }
 
 func (f Format) String() (format string) {

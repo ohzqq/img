@@ -1,4 +1,4 @@
-package imgconv
+package img
 
 import (
 	"image"
@@ -15,11 +15,13 @@ var defaultDecodeConfig = decodeConfig{
 }
 
 // DecodeOption sets an optional parameter for the Decode and Open functions.
+// https://github.com/sunshineplan/imgconv
 type DecodeOption func(*decodeConfig)
 
 // AutoOrientation returns a DecodeOption that sets the auto-orientation mode.
 // If auto-orientation is enabled, the image will be transformed after decoding
 // according to the EXIF orientation tag (if present). By default it's enabled.
+// https://github.com/sunshineplan/imgconv
 func AutoOrientation(enabled bool) DecodeOption {
 	return func(c *decodeConfig) {
 		c.autoOrientation = enabled
@@ -29,6 +31,7 @@ func AutoOrientation(enabled bool) DecodeOption {
 // Decode reads an image from r.
 // If want to use custom image format packages which were registered in image package, please
 // make sure these custom packages imported before importing imgconv package.
+// https://github.com/sunshineplan/imgconv
 func Decode(r io.Reader, opts ...DecodeOption) (image.Image, error) {
 	cfg := defaultDecodeConfig
 	for _, option := range opts {
@@ -40,11 +43,13 @@ func Decode(r io.Reader, opts ...DecodeOption) (image.Image, error) {
 
 // DecodeConfig decodes the color model and dimensions of an image that has been encoded in a
 // registered format. The string returned is the format name used during format registration.
+// https://github.com/sunshineplan/imgconv
 func DecodeConfig(r io.Reader) (image.Config, string, error) {
 	return image.DecodeConfig(r)
 }
 
 // Open loads an image from file.
+// https://github.com/sunshineplan/imgconv
 func Open(file string, opts ...DecodeOption) (image.Image, error) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -56,11 +61,13 @@ func Open(file string, opts ...DecodeOption) (image.Image, error) {
 }
 
 // Write image according format option
+// https://github.com/sunshineplan/imgconv
 func Write(w io.Writer, base image.Image, option *FormatOption) error {
 	return option.Encode(w, base)
 }
 
 // Save saves image according format option
+// https://github.com/sunshineplan/imgconv
 func Save(output string, base image.Image, option *FormatOption) error {
 	f, err := os.Create(output)
 	if err != nil {
