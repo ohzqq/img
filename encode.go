@@ -3,6 +3,7 @@ package img
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -11,6 +12,8 @@ import (
 	"image/png"
 	"io"
 	"mime"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/HugoSmits86/nativewebp"
@@ -49,29 +52,96 @@ func NewEncoder(format Format, opts ...EncodeOption) *Encoder {
 	return enc
 }
 
+// Save saves image according to the encoder
+// https://github.com/sunshineplan/imgconv
+func (enc *Encoder) Save(output string, base image.Image) error {
+	f, err := os.Create(output)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return enc.Encode(f, base)
+}
+
+// SaveAll saves images according to the encoder
+func (enc *Encoder) SaveAll(output string, padding string, images []image.Image) error {
+	enc.padding = padding
+	enc.batch = true
+	enc.pages = images
+	ext := filepath.Ext(output)
+	dir, name := filepath.Split(output)
+	base := strings.TrimSuffix(name, ext)
+	if enc.batch {
+		for i, img := range enc.pages {
+			n := fmt.Sprintf(base+enc.padding+ext, i)
+			f, err := os.Create(filepath.Join(dir, n))
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			err = enc.Encode(f, img)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Animate creates an animated WEBP according to the encoder
+func (enc *Encoder) Animate(output string, images []image.Image) error {
+	enc.Format = WEBP
+	enc.webpAnimation.Images = images
+	f, err := os.Create(output)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return enc.animatedWebp(f)
+}
+
+// Animate creates an animated WEBP according to the encoder
+func (enc *Encoder) AnimatedWebp(output string, images []string) error {
+	enc.Format = WEBP
+	//enc.webpAnimation.Images = images
+	for _, file := range images {
+		img, err := Open(file)
+		if err != nil {
+			return err
+		}
+		enc.webpAnimation.Images = append(enc.webpAnimation.Images, img)
+	}
+	f, err := os.Create(output)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return enc.animatedWebp(f)
+}
+
 // Encode writes the image img to w in the specified format (JPEG, PNG, GIF,
 // TIFF, BMP, PDF, WEBP, HTML, or BASE64).
-func (f *Encoder) Encode(w io.Writer, img image.Image) error {
-	if f.background != nil {
+func (enc *Encoder) Encode(w io.Writer, img image.Image) error {
+	if enc.background != nil {
 		i := image.NewNRGBA(img.Bounds())
-		draw.Draw(i, i.Bounds(), &image.Uniform{f.background}, img.Bounds().Min, draw.Src)
+		draw.Draw(i, i.Bounds(), &image.Uniform{enc.background}, img.Bounds().Min, draw.Src)
 		draw.Draw(i, i.Bounds(), img, img.Bounds().Min, draw.Over)
 		img = i
 	}
 
-	if f.toBase64 {
+	if enc.toBase64 {
 		var buf bytes.Buffer
-		err := f.encode(&buf, img)
+		err := enc.encode(&buf, img)
 		if err != nil {
 			return err
 		}
 		b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-		switch f.base64Fmt {
+		switch enc.base64Fmt {
 		case BASE64:
 		case HTML:
-			b64 = dataURL(f.Format, b64, true)
+			b64 = dataURL(enc.Format, b64, true)
 		case URL:
-			b64 = dataURL(f.Format, b64, false)
+			b64 = dataURL(enc.Format, b64, false)
 		}
 		_, err = w.Write([]byte(b64))
 		if err != nil {
@@ -80,11 +150,11 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 		return nil
 	}
 
-	return f.encode(w, img)
+	return enc.encode(w, img)
 }
 
-func (f *Encoder) encode(w io.Writer, img image.Image) error {
-	switch f.Format {
+func (enc *Encoder) encode(w io.Writer, img image.Image) error {
+	switch enc.Format {
 	case JPEG:
 		if nrgba, ok := img.(*image.NRGBA); ok && nrgba.Opaque() {
 			rgba := &image.RGBA{
@@ -92,41 +162,46 @@ func (f *Encoder) encode(w io.Writer, img image.Image) error {
 				Stride: nrgba.Stride,
 				Rect:   nrgba.Rect,
 			}
-			return jpeg.Encode(w, rgba, &jpeg.Options{Quality: f.Quality})
+			return jpeg.Encode(w, rgba, &jpeg.Options{Quality: enc.Quality})
 		}
-		return jpeg.Encode(w, img, &jpeg.Options{Quality: f.Quality})
+		return jpeg.Encode(w, img, &jpeg.Options{Quality: enc.Quality})
 
 	case PNG:
-		encoder := png.Encoder{CompressionLevel: f.pngCompressionLevel}
+		encoder := png.Encoder{CompressionLevel: enc.pngCompressionLevel}
 		return encoder.Encode(w, img)
 
 	case GIF:
 		return gif.Encode(w, img, &gif.Options{
-			NumColors: f.gifNumColors,
-			Quantizer: f.gifQuantizer,
-			Drawer:    f.gifDrawer,
+			NumColors: enc.gifNumColors,
+			Quantizer: enc.gifQuantizer,
+			Drawer:    enc.gifDrawer,
 		})
 
 	case TIFF:
-		return tiff.Encode(w, img, &tiff.Options{Compression: f.tiffCompressionType.value(), Predictor: true})
+		return tiff.Encode(w, img, &tiff.Options{Compression: enc.tiffCompressionType.value(), Predictor: true})
 
 	case BMP:
 		return bmp.Encode(w, img)
 
 	case PDF:
 		pages := []image.Image{img}
-		pages = append(pages, f.pages...)
-		return pdf.Encode(w, pages, &pdf.Options{Quality: f.Quality})
+		pages = append(pages, enc.pages...)
+		return pdf.Encode(w, pages, &pdf.Options{Quality: enc.Quality})
 
 	case WEBP:
-		webpOpts := &nativewebp.Options{UseExtendedFormat: f.webpUseExtendedFormat}
-		if len(f.webpAnimation.Images) > 0 {
-			return nativewebp.EncodeAll(w, f.webpAnimation, webpOpts)
+		if len(enc.webpAnimation.Images) > 0 {
+			return enc.animatedWebp(w)
 		}
+		webpOpts := &nativewebp.Options{UseExtendedFormat: enc.webpUseExtendedFormat}
 		return nativewebp.Encode(w, img, webpOpts)
 	}
 
 	return image.ErrFormat
+}
+
+func (enc *Encoder) animatedWebp(w io.Writer) error {
+	webpOpts := &nativewebp.Options{UseExtendedFormat: enc.webpUseExtendedFormat}
+	return nativewebp.EncodeAll(w, enc.webpAnimation, webpOpts)
 }
 
 func dataURL(f Format, b64 string, html bool) string {
