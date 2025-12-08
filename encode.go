@@ -40,6 +40,8 @@ type Encoder struct {
 	base64Fmt             Format
 	webpUseExtendedFormat bool
 	webpAnimation         *nativewebp.Animation
+	webpDisposal          uint
+	webpDuration          uint
 }
 
 // NewEncoder initializes an encoder.
@@ -64,15 +66,13 @@ func (enc *Encoder) Save(output string, base image.Image) error {
 }
 
 // SaveAll saves images according to the encoder
-func (enc *Encoder) SaveAll(output string, padding string, images []image.Image) error {
-	enc.padding = padding
+func (enc *Encoder) SaveAll(output string, images []image.Image) error {
 	enc.batch = true
-	enc.pages = images
 	ext := filepath.Ext(output)
 	dir, name := filepath.Split(output)
 	base := strings.TrimSuffix(name, ext)
 	if enc.batch {
-		for i, img := range enc.pages {
+		for i, img := range images {
 			n := fmt.Sprintf(base+enc.padding+ext, i)
 			f, err := os.Create(filepath.Join(dir, n))
 			if err != nil {
@@ -88,8 +88,8 @@ func (enc *Encoder) SaveAll(output string, padding string, images []image.Image)
 	return nil
 }
 
-// Animate creates an animated WEBP according to the encoder
-func (enc *Encoder) Animate(output string, images []image.Image) error {
+// AnimateImages creates an animated WEBP according to the encoder
+func (enc *Encoder) AnimateImages(output string, images []image.Image) error {
 	enc.Format = WEBP
 	enc.webpAnimation.Images = images
 	f, err := os.Create(output)
@@ -101,22 +101,31 @@ func (enc *Encoder) Animate(output string, images []image.Image) error {
 }
 
 // Animate creates an animated WEBP according to the encoder
-func (enc *Encoder) AnimatedWebp(output string, images []string) error {
+func (enc *Encoder) AnimatedWEBP(output string, images []string) error {
 	enc.Format = WEBP
-	//enc.webpAnimation.Images = images
-	for _, file := range images {
+	imgs := make([]image.Image, len(images))
+	noDis := len(enc.webpAnimation.Disposals) != len(images)
+	noDur := len(enc.webpAnimation.Durations) != len(images)
+	if noDur {
+		enc.webpAnimation.Durations = make([]uint, len(images))
+	}
+	if noDis {
+		enc.webpAnimation.Disposals = make([]uint, len(images))
+	}
+	for i, file := range images {
 		img, err := Open(file)
 		if err != nil {
 			return err
 		}
-		enc.webpAnimation.Images = append(enc.webpAnimation.Images, img)
+		imgs[i] = img
+		if noDur {
+			enc.webpAnimation.Durations[i] = enc.webpDuration
+		}
+		if noDis {
+			enc.webpAnimation.Disposals[i] = enc.webpDisposal
+		}
 	}
-	f, err := os.Create(output)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return enc.animatedWebp(f)
+	return enc.AnimateImages(output, imgs)
 }
 
 // Encode writes the image img to w in the specified format (JPEG, PNG, GIF,

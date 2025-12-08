@@ -1,12 +1,10 @@
 package img
 
 import (
-	"fmt"
 	"image"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Decode reads an image from r.
@@ -40,46 +38,40 @@ func Open(file string) (image.Image, error) {
 		return nil, err
 	}
 	defer f.Close()
-
 	return Decode(f)
 }
 
-// Write image according to the encoder
-// https://github.com/sunshineplan/imgconv
-func Write(w io.Writer, base image.Image, encoder *Encoder) error {
-	return encoder.Encode(w, base)
+// OpenAll loads images from files.
+func OpenAll(files []string) ([]image.Image, error) {
+	imgs := make([]image.Image, len(files))
+	for i, file := range files {
+		img, err := Open(file)
+		if err != nil {
+			return imgs, err
+		}
+		imgs[i] = img
+	}
+	return imgs, nil
 }
 
 // Save saves image according to the encoder
 // https://github.com/sunshineplan/imgconv
-func Save(output string, base image.Image, encoder *Encoder) error {
-	f, err := os.Create(output)
+func Save(output string, base image.Image, opts ...EncodeOption) error {
+	ext := filepath.Ext(output)
+	imgFmt, err := FormatFromExtension(ext)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return encoder.Encode(f, base)
+	return NewEncoder(imgFmt, opts...).Save(output, base)
 }
 
 // SaveAll saves images according to the encoder
 // https://github.com/sunshineplan/imgconv
-func SaveAll(output string, encoder *Encoder) error {
+func SaveAll(output string, images []image.Image, opts ...EncodeOption) error {
 	ext := filepath.Ext(output)
-	dir, name := filepath.Split(output)
-	base := strings.TrimSuffix(name, ext)
-	if encoder.batch {
-		for i, img := range encoder.pages {
-			n := fmt.Sprintf(base+encoder.padding+ext, i)
-			f, err := os.Create(filepath.Join(dir, n))
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			err = encoder.Encode(f, img)
-			if err != nil {
-				return err
-			}
-		}
+	imgFmt, err := FormatFromExtension(ext)
+	if err != nil {
+		return err
 	}
-	return nil
+	return NewEncoder(imgFmt, opts...).SaveAll(output, images)
 }

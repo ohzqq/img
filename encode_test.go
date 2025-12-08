@@ -1,0 +1,40 @@
+package img
+
+import "testing"
+
+func TestAnimation(t *testing.T) {
+	tstImgs := []string{
+		`testdata/body0001.tif`,
+		`testdata/body0002.tif`,
+		`testdata/body0003.tif`,
+		`testdata/body0004.tif`,
+	}
+	enc := NewEncoder(WEBP,
+		WEBPAnimationDuration(1),
+	)
+	err := enc.AnimatedWEBP(`testdata/animated.webp`, tstImgs)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBatch(t *testing.T) {
+	tstBatch := []string{
+		"testdata/video-001.bmp",
+		"testdata/video-001.gif",
+		"testdata/video-001.jpg",
+		"testdata/video-001.tif",
+		"testdata/video-001.webp",
+	}
+	tstImgs, err := OpenAll(tstBatch)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = SaveAll(`testdata/batch.png`, tstImgs,
+		Padding("%07d"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

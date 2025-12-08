@@ -15,21 +15,6 @@ import (
 // https://github.com/disintegration/imaging
 type EncodeOption func(*Encoder)
 
-type encodeConfig struct {
-	Quality               int
-	gifNumColors          int
-	gifQuantizer          draw.Quantizer
-	gifDrawer             draw.Drawer
-	pngCompressionLevel   png.CompressionLevel
-	tiffCompressionType   TIFFCompression
-	background            color.Color
-	pages                 []image.Image
-	toBase64              bool
-	base64Fmt             Format
-	webpUseExtendedFormat bool
-	webpAnimation         *nativewebp.Animation
-}
-
 var defaultEncodeConfig = &Encoder{
 	Quality:             75,
 	gifNumColors:        256,
@@ -39,15 +24,16 @@ var defaultEncodeConfig = &Encoder{
 	tiffCompressionType: TIFFDeflate,
 	padding:             `%02d`,
 	webpAnimation:       &nativewebp.Animation{},
+	webpDisposal:        1,
+	webpDuration:        10,
 	//background:          color.Transparent,
 }
 
-// Batch returns an EncodeOption that writes a batch of images. Arguments are a
+// Padding returns an EncodeOption that writes a batch of images. Arguments are a
 // list of images and a fmt string for zero padding: eg, %04d.
-func Batch(images []image.Image, padding string) EncodeOption {
+func Padding(padding string) EncodeOption {
 	return func(c *Encoder) {
 		c.batch = true
-		c.pages = images
 		c.padding = padding
 	}
 }
@@ -124,11 +110,27 @@ func WEBPAnimationDurations(dur []int) EncodeOption {
 	}
 }
 
+// WEBPAnimationDurations returns an EncodeOption that sets the webp animation
+// durations.
+func WEBPAnimationDuration(dur int) EncodeOption {
+	return func(c *Encoder) {
+		c.webpDuration = cast.ToUint(dur)
+	}
+}
+
 // WEBPAnimationDisposals returns an EncodeOption that sets the webp animation
 // durations.
 func WEBPAnimationDisposals(disposals []int) EncodeOption {
 	return func(c *Encoder) {
 		c.webpAnimation.Disposals = cast.ToUintSlice(disposals)
+	}
+}
+
+// WEBPAnimationDisposal returns an EncodeOption that sets the webp animation
+// durations.
+func WEBPAnimationDisposal(disposal int) EncodeOption {
+	return func(c *Encoder) {
+		c.webpDisposal = cast.ToUint(disposal)
 	}
 }
 

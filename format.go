@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"fmt"
 	"image"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -64,6 +65,10 @@ func FormatFromExtension(ext string) (Format, error) {
 		}
 	}
 	return -1, image.ErrFormat
+}
+
+func FormatFromFilename(name string) (Format, error) {
+	return FormatFromExtension(filepath.Ext(name))
 }
 
 func (f *Format) UnmarshalText(text []byte) error {
