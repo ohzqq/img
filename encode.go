@@ -15,6 +15,7 @@ import (
 
 	"github.com/HugoSmits86/nativewebp"
 	"github.com/hhrutter/tiff"
+	"github.com/spf13/cast"
 	"github.com/sunshineplan/pdf"
 	"golang.org/x/image/bmp"
 )
@@ -36,11 +37,12 @@ type encodeConfig struct {
 	gifDrawer             draw.Drawer
 	pngCompressionLevel   png.CompressionLevel
 	tiffCompressionType   TIFFCompression
-	webpUseExtendedFormat bool
 	background            color.Color
 	pages                 []image.Image
 	toBase64              bool
 	base64Fmt             Format
+	webpUseExtendedFormat bool
+	webpAnimation         *nativewebp.Animation
 }
 
 var defaultEncodeConfig = encodeConfig{
@@ -50,7 +52,8 @@ var defaultEncodeConfig = encodeConfig{
 	gifDrawer:           nil,
 	pngCompressionLevel: png.DefaultCompression,
 	tiffCompressionType: TIFFDeflate,
-	background:          color.Transparent,
+	webpAnimation:       &nativewebp.Animation{},
+	//background:          color.Transparent,
 }
 
 // NewEncoder initializes an encoder.
@@ -100,21 +103,6 @@ func (f *Encoder) Encode(w io.Writer, img image.Image) error {
 	return f.encode(w, img, cfg)
 }
 
-func dataURL(f Format, b64 string, html bool) string {
-	var b strings.Builder
-	if html {
-		b.WriteString(`<img src="`)
-	}
-	b.WriteString(`data:`)
-	b.WriteString(mime.TypeByExtension(f.String()))
-	b.WriteString(`;base64,`)
-	b.WriteString(b64)
-	if html {
-		b.WriteString(`"></img>`)
-	}
-	return b.String()
-}
-
 func (f *Encoder) encode(w io.Writer, img image.Image, cfg encodeConfig) error {
 	switch f.Format {
 	case JPEG:
@@ -155,6 +143,21 @@ func (f *Encoder) encode(w io.Writer, img image.Image, cfg encodeConfig) error {
 	}
 
 	return image.ErrFormat
+}
+
+func dataURL(f Format, b64 string, html bool) string {
+	var b strings.Builder
+	if html {
+		b.WriteString(`<img src="`)
+	}
+	b.WriteString(`data:`)
+	b.WriteString(mime.TypeByExtension(f.String()))
+	b.WriteString(`;base64,`)
+	b.WriteString(b64)
+	if html {
+		b.WriteString(`"></img>`)
+	}
+	return b.String()
 }
 
 // Quality returns an EncodeOption that sets the output JPEG or PDF quality.
@@ -210,6 +213,39 @@ func TIFFCompressionType(compressionType TIFFCompression) EncodeOption {
 func WEBPUseExtendedFormat(b bool) EncodeOption {
 	return func(c *encodeConfig) {
 		c.webpUseExtendedFormat = b
+	}
+}
+
+// WEBPAnimationDurations returns an EncodeOption that sets the webp animation
+// durations.
+func WEBPAnimationDurations(dur []int) EncodeOption {
+	return func(c *encodeConfig) {
+		c.webpAnimation.Durations = cast.ToUintSlice(dur)
+	}
+}
+
+// WEBPAnimationDisposals returns an EncodeOption that sets the webp animation
+// durations.
+func WEBPAnimationDisposals(disposals []int) EncodeOption {
+	return func(c *encodeConfig) {
+		c.webpAnimation.Disposals = cast.ToUintSlice(disposals)
+	}
+}
+
+// WEBPAnimationLoopCount returns an EncodeOption that sets the webp animation
+// durations.
+func WEBPAnimationLoopCount(loops int) EncodeOption {
+	return func(c *encodeConfig) {
+		c.webpAnimation.LoopCount = cast.ToUint16(loops)
+	}
+}
+
+// WEBPAnimationBackgroundColor returns an EncodeOption that sets the webp animation
+// durations.
+// Canvas background color in BGRA order, used for clear operations.
+func WEBPAnimationBackgroundColor(color uint32) EncodeOption {
+	return func(c *encodeConfig) {
+		c.webpAnimation.BackgroundColor = color
 	}
 }
 
