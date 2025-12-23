@@ -9,10 +9,15 @@ import (
 	"slices"
 	"strings"
 
+	//"github.com/HugoSmits86/nativewebp"
 	"github.com/bep/imagemeta"
 	"github.com/evanoberholster/imagemeta/imagetype"
+	"github.com/gen2brain/webp"
 	"github.com/hhrutter/tiff"
 	"github.com/samber/lo"
+	"github.com/sunshineplan/imgconv"
+	"github.com/sunshineplan/pdf"
+	"golang.org/x/image/bmp"
 )
 
 var (
@@ -70,6 +75,46 @@ func (f Format) Encode(w io.Writer, img image.Image, opts ...EncodeOption) error
 	return NewEncoder(f, opts...).Encode(w, img)
 }
 
+func (f Format) DecodeAnimatedWebP(r io.Reader) (*webp.WEBP, error) {
+	return webp.DecodeAll(r)
+}
+
+func (f Format) Decode(r io.Reader) (image.Image, error) {
+	switch f {
+	case PDF:
+		img, err := pdf.Decode(r)
+		if err != nil {
+			return nil, fmt.Errorf("pdf.Decode %w", err)
+		}
+		return img, nil
+	case WEBP:
+		img, err := webp.Decode(r)
+		if err != nil {
+			return nil, fmt.Errorf("this webp is probably animated, use DecodeAnimatedWebP %w", err)
+		}
+		return img, nil
+	case TIFF:
+		img, err := tiff.Decode(r)
+		if err != nil {
+			return img, fmt.Errorf("tiff.Decode %w", err)
+		}
+		return img, nil
+	case BMP:
+		img, err := bmp.Decode(r)
+		if err != nil {
+			return nil, fmt.Errorf("bmp.Decode %w", err)
+		}
+		return img, nil
+	case PNG, JPEG, GIF:
+		img, _, err := image.Decode(r)
+		if err != nil {
+			return nil, fmt.Errorf("error from image.Decode %w", err)
+		}
+		return img, nil
+	}
+	return nil, fmt.Errorf("error from f.Decode %w", image.ErrFormat)
+}
+
 func (f Format) metaFmt() imagemeta.ImageFormat {
 	switch f {
 	case JPEG:
@@ -83,6 +128,10 @@ func (f Format) metaFmt() imagemeta.ImageFormat {
 	default:
 		return imagemeta.ImageFormatAuto
 	}
+}
+
+func (f Format) convFmt() imgconv.Format {
+	return imgconv.Format(int(f))
 }
 
 func (f Format) ImageType() imagetype.ImageType {

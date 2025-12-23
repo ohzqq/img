@@ -2,6 +2,7 @@ package img
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -26,7 +27,7 @@ func (i *Decoder) DecodeMeta(r io.ReadSeeker) error {
 
 	err := imagemeta.Decode(i.opts)
 	if err != nil {
-		return err
+		return fmt.Errorf("imagemeta decode err %w\n", err)
 	}
 
 	for n, ti := range tags.All() {

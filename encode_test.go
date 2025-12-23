@@ -31,7 +31,7 @@ func TestBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SaveAll(`testdata/batch.png`, tstImgs,
+	err = SaveAll(`testdata/batch.webp`, tstImgs,
 		Padding("%07d"),
 	)
 	if err != nil {

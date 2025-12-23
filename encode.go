@@ -119,14 +119,19 @@ func (enc *Encoder) SaveAll(output string, images []image.Image) error {
 
 // AnimateImages creates an animated WEBP according to the encoder
 func (enc *Encoder) AnimateImages(output string, images []image.Image) error {
-	enc.Format = WEBP
-	enc.webpAnimation.Images = images
-	f, err := os.Create(output)
-	if err != nil {
-		return err
+	switch enc.Format {
+	//TODO
+	case GIF:
+	case WEBP:
+		enc.webpAnimation.Images = images
+		f, err := os.Create(output)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		return enc.animatedWebp(f)
 	}
-	defer f.Close()
-	return enc.animatedWebp(f)
+	return nil
 }
 
 // Animate creates an animated WEBP according to the encoder
@@ -227,7 +232,7 @@ func (enc *Encoder) encode(w io.Writer, img image.Image) error {
 		return pdf.Encode(w, pages, &pdf.Options{Quality: enc.Quality})
 
 	case WEBP:
-		if len(enc.webpAnimation.Images) > 0 {
+		if len(enc.webpAnimation.Images) > 1 {
 			return enc.animatedWebp(w)
 		}
 		webpOpts := &nativewebp.Options{UseExtendedFormat: enc.webpUseExtendedFormat}
