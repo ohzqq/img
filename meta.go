@@ -11,23 +11,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func (meta *Decoder) DublinCore() xmp.DublinCore {
-	return meta.xmp.DC
-}
-
-func (meta *Decoder) SetField(f string, val string) *Decoder {
-	meta.meta[f] = val
-	return meta
-}
-
-func (meta *Decoder) GetField(f string) string {
-	if v, ok := meta.meta[f]; ok {
-		return v
-	}
-	return ""
-}
-
 func (i *Decoder) DecodeMeta(r io.ReadSeeker) error {
+	i.withMeta = true
 	var tags imagemeta.Tags
 	i.opts.HandleTag = func(ti imagemeta.TagInfo) error {
 		if slices.Contains(imgMetaFieldsStr, ti.Tag) {
@@ -61,6 +46,22 @@ func (i *Decoder) DecodeMeta(r io.ReadSeeker) error {
 		}
 	}
 	return nil
+}
+
+func (meta *Decoder) DublinCore() xmp.DublinCore {
+	return meta.xmp.DC
+}
+
+func (meta *Decoder) SetField(f string, val string) *Decoder {
+	meta.meta[f] = val
+	return meta
+}
+
+func (meta *Decoder) GetField(f string) string {
+	if v, ok := meta.meta[f]; ok {
+		return v
+	}
+	return ""
 }
 
 func (i *Decoder) EncodeXMP(w io.Writer) error {

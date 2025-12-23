@@ -11,9 +11,11 @@ import (
 )
 
 type Decoder struct {
-	Fmt      Format
-	hTags    *Tags
+	file     string
 	withMeta bool
+	Fmt      Format
+	img      image.Image
+	hTags    *Tags
 	meta     map[string]string
 	opts     imagemeta.Options
 	xmp      xmp.XMP
@@ -21,6 +23,7 @@ type Decoder struct {
 
 func NewDecoder(name string, opts ...DecodeOption) (*Decoder, error) {
 	dec := &Decoder{
+		file:  name,
 		meta:  make(map[string]string),
 		opts:  imagemeta.Options{},
 		hTags: NewTags(),
@@ -44,6 +47,19 @@ func NewDecoder(name string, opts ...DecodeOption) (*Decoder, error) {
 		dec.opts.ImageFormat = dec.Fmt.metaFmt()
 	}
 	return dec, nil
+}
+
+func (dec *Decoder) DecodeImage() error {
+	f, err := os.Open(dec.file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	dec.img, err = Decode(f)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Decode reads an image from r.

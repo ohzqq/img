@@ -15,20 +15,20 @@ func TestImgMeta(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	defer f.Close()
 
-	i, err := NewDecoder(`testdata/test.webp`)
+	i, err := NewDecoder(`testdata/test.webp`, WithMeta())
 	c.Assert(err, qt.IsNil)
 
 	err = i.DecodeMeta(f)
 	c.Assert(err, qt.IsNil)
 }
 
-func TestEncodeImgMeta(t *testing.T) {
+func TestDecodeImgMeta(t *testing.T) {
 	c := qt.New(t)
 	f, err := os.Open(`testdata/test.webp`)
 	c.Assert(err, qt.IsNil)
 	defer f.Close()
 
-	i, err := NewDecoder(`testdata/test.webp`)
+	i, err := NewDecoder(`testdata/test.webp`, WithMeta())
 	c.Assert(err, qt.IsNil)
 
 	err = i.DecodeMeta(f)
@@ -40,7 +40,7 @@ func TestEncodeImgMeta(t *testing.T) {
 
 func TestImageFmtConvert(t *testing.T) {
 	c := qt.New(t)
-	i, err := NewDecoder(`testdata/test.webp`)
+	i, err := NewDecoder(`testdata/test.webp`, WithMeta())
 	c.Assert(err, qt.IsNil)
 
 	it := imagetype.ImageWebP
