@@ -1,30 +1,28 @@
 package img
 
 import (
+	"encoding/xml"
 	"fmt"
 	"image"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/evanoberholster/imagemeta/xmp"
 )
 
 type Img struct {
-	xmp   xmp.XMP
-	Fmt   Format
-	toFmt Format
-	img   image.Image
-	hTags *Tags
-	meta  map[string]string
-	file  string
+	xmp      xmp.XMP
+	Fmt      Format
+	img      image.Image
+	file     string
+	withMeta bool
 }
 
 func NewImg(name string) (*Img, error) {
 	img := &Img{
-		file:  name,
-		meta:  make(map[string]string),
-		toFmt: Format(-1),
-		hTags: NewTags(),
+		file: name,
 	}
 	ext := filepath.Ext(name)
 	imgFmt, err := FormatFromExtension(ext)
@@ -36,20 +34,42 @@ func NewImg(name string) (*Img, error) {
 }
 
 func (img *Img) ReadMeta() error {
-	dec := NewDecoder()
-	img.xmp = xmp.XMP{
-		DC: xmp.DublinCore{
-			Identifier: img.file,
-			Format:     img.Fmt.ImageType(),
-		},
-	}
-	dec.opts.ImageFormat = img.Fmt.metaFmt()
 	f, err := os.Open(img.file)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return dec.DecodeMeta(f, img)
+	dec := NewDecoder(f)
+	dec.opts.ImageFormat = img.Fmt.metaFmt()
+	x, err := dec.DecodeXMP(f)
+	if err != nil {
+		return err
+	}
+	img.xmp = x
+	img.xmp.DC.Identifier = img.file
+	img.xmp.DC.Format = img.Fmt.ImageType()
+	return nil
+}
+
+func (img *Img) Open() error {
+	f, err := os.Open(img.file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	dec := NewDecoder(f)
+	i, err := dec.Decode(img.Fmt)
+	if err != nil {
+		return err
+	}
+	img.img = i
+	if img.withMeta {
+		err := img.ReadMeta()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (img *Img) Save(opts ...EncodeOption) error {
@@ -79,3 +99,28 @@ func (img *Img) SaveAs(name string, opts ...EncodeOption) error {
 	enc := NewEncoder(to, opts...)
 	return enc.Save(name, img.img)
 }
+
+func (dec *Img) DublinCore() xmp.DublinCore {
+	return dec.xmp.DC
+}
+
+func (dec *Img) EncodeXMP(w io.Writer) error {
+	enc := xml.NewEncoder(w)
+	enc.Indent("", "  ")
+	return enc.Encode(dec.xmp)
+}
+
+var (
+	imgMetaFields = []ExifField{
+		Categories,
+		Caption,
+		Credit,
+		ImageDescription,
+	}
+	imgMetaFieldsStr = []string{
+		strings.ToLower(Categories.String()),
+		strings.ToLower(Caption.String()),
+		Credit.String(),
+		ImageDescription.String(),
+	}
+)

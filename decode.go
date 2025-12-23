@@ -9,18 +9,28 @@ import (
 	"strings"
 
 	"github.com/bep/imagemeta"
+	"github.com/evanoberholster/imagemeta/xmp"
 	"github.com/spf13/cast"
 )
 
 type Decoder struct {
+	r        io.Reader
 	Fmt      Format
 	withMeta bool
 	opts     imagemeta.Options
 }
 
-func NewDecoder(opts ...DecodeOption) *Decoder {
+func NewDecoder(r io.Reader) *Decoder {
+	return &Decoder{
+		r:    r,
+		opts: imagemeta.Options{},
+	}
+}
+
+func newDecoder(f Format, opts ...DecodeOption) *Decoder {
 	dec := &Decoder{
 		opts: imagemeta.Options{},
+		Fmt:  f,
 	}
 	for _, opt := range opts {
 		opt(dec)
@@ -28,12 +38,8 @@ func NewDecoder(opts ...DecodeOption) *Decoder {
 	return dec
 }
 
-func (dec *Decoder) Decode(r io.Reader) (image.Image, error) {
-	img, err := dec.Fmt.Decode(r)
-	if err != nil {
-		return nil, err
-	}
-	return img, nil
+func (dec *Decoder) Decode(f Format) (image.Image, error) {
+	return f.Decode(dec.r)
 }
 
 func Open(file string, withMeta bool) (*Img, error) {
@@ -41,14 +47,13 @@ func Open(file string, withMeta bool) (*Img, error) {
 	if err != nil {
 		return nil, err
 	}
-	dec := NewDecoder()
-	dec.Fmt = img.Fmt
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
+	dec := NewDecoder(f)
 	defer f.Close()
-	i, err := dec.Decode(f)
+	i, err := dec.Decode(img.Fmt)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +67,7 @@ func Open(file string, withMeta bool) (*Img, error) {
 	return img, nil
 }
 
-func (dec *Decoder) DecodeMeta(r io.ReadSeeker, i *Img) error {
+func (dec *Decoder) DecodeXMP(r io.ReadSeeker) (xmp.XMP, error) {
 	dec.withMeta = true
 	var tags imagemeta.Tags
 	dec.opts.HandleTag = func(ti imagemeta.TagInfo) error {
@@ -77,32 +82,37 @@ func (dec *Decoder) DecodeMeta(r io.ReadSeeker, i *Img) error {
 
 	err := imagemeta.Decode(dec.opts)
 	if err != nil {
-		return fmt.Errorf("imagemeta decode err %w\n", err)
+		return xmp.XMP{}, fmt.Errorf("imagemeta decode err %w\n", err)
 	}
 
+	x := xmp.XMP{DC: xmp.DublinCore{}}
 	for n, ti := range tags.All() {
 		switch n {
 		case strings.ToLower(Categories.String()):
-			err := i.hTags.UnmarshalXMP([]byte(cast.ToString(ti.Value)))
+			hTags, err := UnmarshalHTags([]byte(cast.ToString(ti.Value)))
 			if err != nil {
-				return err
+				return x, err
 			}
-			i.xmp.DC.Subject = i.hTags.StringSlice()
+			x.DC.Subject = hTags.StringSlice()
 		case strings.ToLower(Caption.String()):
-			i.xmp.DC.Title = []string{cast.ToString(ti.Value)}
+			x.DC.Title = []string{cast.ToString(ti.Value)}
 		case Credit.String():
-			i.xmp.DC.Creator = []string{cast.ToString(ti.Value)}
+			x.DC.Creator = []string{cast.ToString(ti.Value)}
 		case ImageDescription.String():
-			i.xmp.DC.Description = []string{cast.ToString(ti.Value)}
+			x.DC.Description = []string{cast.ToString(ti.Value)}
 		}
 	}
-	return nil
+	return x, nil
 }
 
 // open loads an image from file.
 // https://github.com/sunshineplan/imgconv
 func open(file string) (image.Image, error) {
-	dec := NewDecoder()
+	img, err := NewImg(file)
+	if err != nil {
+		return nil, err
+	}
+	dec := newDecoder(img.Fmt)
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err

@@ -32,6 +32,8 @@ type Encoder struct {
 	gifNumColors          int
 	gifQuantizer          draw.Quantizer
 	gifDrawer             draw.Drawer
+	gifAnimation          *gif.GIF
+	gifDelay              int
 	pngCompressionLevel   png.CompressionLevel
 	tiffCompressionType   TIFFCompression
 	background            color.Color
@@ -42,6 +44,7 @@ type Encoder struct {
 	webpAnimation         *nativewebp.Animation
 	webpDisposal          uint
 	webpDuration          uint
+	isAnimated            bool
 }
 
 // Save saves image according to the encoder
@@ -119,6 +122,7 @@ func (enc *Encoder) SaveAll(output string, images []image.Image) error {
 
 // AnimateImages creates an animated WEBP according to the encoder
 func (enc *Encoder) AnimateImages(output string, images []image.Image) error {
+	enc.isAnimated = true
 	switch enc.Format {
 	//TODO
 	case GIF:
@@ -136,6 +140,7 @@ func (enc *Encoder) AnimateImages(output string, images []image.Image) error {
 
 // Animate creates an animated WEBP according to the encoder
 func (enc *Encoder) AnimatedWEBP(output string, images []string) error {
+	enc.isAnimated = true
 	enc.Format = WEBP
 	imgs := make([]image.Image, len(images))
 	noDis := len(enc.webpAnimation.Disposals) != len(images)
@@ -160,6 +165,13 @@ func (enc *Encoder) AnimatedWEBP(output string, images []string) error {
 		}
 	}
 	return enc.AnimateImages(output, imgs)
+}
+
+func (enc *Encoder) AnimatedGIF(output string, images []string) error {
+	enc.isAnimated = true
+	enc.Format = GIF
+	//imgs := make([]image.Image, len(images))
+	return nil
 }
 
 // Encode writes the image img to w in the specified format (JPEG, PNG, GIF,
@@ -213,13 +225,6 @@ func (enc *Encoder) encode(w io.Writer, img image.Image) error {
 		encoder := png.Encoder{CompressionLevel: enc.pngCompressionLevel}
 		return encoder.Encode(w, img)
 
-	case GIF:
-		return gif.Encode(w, img, &gif.Options{
-			NumColors: enc.gifNumColors,
-			Quantizer: enc.gifQuantizer,
-			Drawer:    enc.gifDrawer,
-		})
-
 	case TIFF:
 		return tiff.Encode(w, img, &tiff.Options{Compression: enc.tiffCompressionType.value(), Predictor: true})
 
@@ -230,6 +235,13 @@ func (enc *Encoder) encode(w io.Writer, img image.Image) error {
 		pages := []image.Image{img}
 		pages = append(pages, enc.pages...)
 		return pdf.Encode(w, pages, &pdf.Options{Quality: enc.Quality})
+
+	case GIF:
+		return gif.Encode(w, img, &gif.Options{
+			NumColors: enc.gifNumColors,
+			Quantizer: enc.gifQuantizer,
+			Drawer:    enc.gifDrawer,
+		})
 
 	case WEBP:
 		if len(enc.webpAnimation.Images) > 1 {

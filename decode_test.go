@@ -10,12 +10,11 @@ import (
 func TestDecoder(t *testing.T) {
 	c := qt.New(t)
 	tstImg := `testdata/test.webp`
-	dec := NewDecoder()
 	f, err := os.Open(tstImg)
 	c.Assert(err, qt.IsNil)
-	dec.Fmt = WEBP
+	dec := NewDecoder(f)
 
-	_, err = dec.Decode(f)
+	_, err = dec.Decode(WEBP)
 	c.Assert(err, qt.IsNil)
 }
 
@@ -27,7 +26,7 @@ func TestDecodeAnimatedWebp(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	defer f.Close()
 
-	dec := NewDecoder()
+	dec := newDecoder(WEBP)
 	_, err = dec.Fmt.DecodeAnimatedWebP(f)
 	c.Assert(err, qt.IsNil)
 }

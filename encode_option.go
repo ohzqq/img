@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/gif"
 	"image/png"
 	"mime"
 
@@ -17,6 +18,7 @@ type EncodeOption func(*Encoder)
 
 var defaultEncodeConfig = &Encoder{
 	Quality:             75,
+	gifAnimation:        &gif.GIF{},
 	gifNumColors:        256,
 	gifQuantizer:        nil,
 	gifDrawer:           nil,
@@ -67,6 +69,42 @@ func GIFQuantizer(quantizer draw.Quantizer) EncodeOption {
 func GIFDrawer(drawer draw.Drawer) EncodeOption {
 	return func(c *Encoder) {
 		c.gifDrawer = drawer
+	}
+}
+
+// GIFDelay returns an EncodeOption that sets the delay for gif frames. This is
+// a convenience function to set the same delay for all frames.
+func GIFDelay(d int) EncodeOption {
+	return func(c *Encoder) {
+		c.gifDelay = d
+	}
+}
+
+// GIFDelays returns an EncodeOption that sets the delay for gif frames.
+func GIFDelays(d []int) EncodeOption {
+	return func(c *Encoder) {
+		c.gifAnimation.Delay = d
+	}
+}
+
+// GIFDisposal returns an EncodeOption that sets the delay for gif frames.
+func GIFDisposal(d []byte) EncodeOption {
+	return func(c *Encoder) {
+		c.gifAnimation.Disposal = d
+	}
+}
+
+// GIFBackgroundIndex returns an EncodeOption that sets the delay for gif frames.
+func GIFBackgroundIndex(d byte) EncodeOption {
+	return func(c *Encoder) {
+		c.gifAnimation.BackgroundIndex = d
+	}
+}
+
+// GIFLoopCount returns an EncodeOption that sets the delay for gif frames.
+func GIFLoopCount(d int) EncodeOption {
+	return func(c *Encoder) {
+		c.gifAnimation.LoopCount = d
 	}
 }
 
