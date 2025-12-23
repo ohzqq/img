@@ -1,4 +1,4 @@
-package imgtag
+package img
 
 import (
 	"encoding/xml"
@@ -10,13 +10,12 @@ import (
 	"github.com/bep/imagemeta"
 	"github.com/evanoberholster/imagemeta/imagetype"
 	"github.com/evanoberholster/imagemeta/xmp"
-	"github.com/ohzqq/img"
 	"github.com/spf13/cast"
 )
 
 type Img struct {
 	hTags *Tags
-	Fmt   img.Format
+	Fmt   Format
 	meta  map[string]string
 	opts  imagemeta.Options
 	xmp   xmp.XMP
@@ -24,8 +23,9 @@ type Img struct {
 
 func NewImg(name string) (*Img, error) {
 	i := &Img{
-		meta: make(map[string]string),
-		opts: imagemeta.Options{},
+		meta:  make(map[string]string),
+		opts:  imagemeta.Options{},
+		hTags: NewTags(),
 	}
 	ext := filepath.Ext(name)
 	f := imagetype.FromString(ext)
@@ -80,11 +80,10 @@ func (i *Img) DecodeMeta(r io.ReadSeeker) error {
 	for n, ti := range tags.All() {
 		switch n {
 		case strings.ToLower(Categories.String()):
-			t, err := UnmarshalHTags([]byte(cast.ToString(ti.Value)))
+			err := i.hTags.UnmarshalXMP([]byte(cast.ToString(ti.Value)))
 			if err != nil {
 				return err
 			}
-			i.hTags = t
 			i.xmp.DC.Subject = i.hTags.StringSlice()
 		case strings.ToLower(Caption.String()):
 			i.xmp.DC.Title = []string{cast.ToString(ti.Value)}

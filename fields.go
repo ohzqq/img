@@ -1,6 +1,9 @@
-package imgtag
+package img
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 //go:generate stringer -type ExifField
 type ExifField int
@@ -90,7 +93,6 @@ var metaFields = []ExifField{
 
 func (f ExifField) Split(tag string) []string {
 	return strings.FieldsFunc(tag, SplitFunc)
-	//return strings.Split(tag, f.Sep())
 }
 
 func (f ExifField) Join(t []string) string {
@@ -98,12 +100,7 @@ func (f ExifField) Join(t []string) string {
 }
 
 func (f ExifField) IsHierarchical() bool {
-	switch f {
-	case HierarchicalSubject, CatalogSets, LastKeywordXMP:
-		return true
-	default:
-		return false
-	}
+	return slices.Contains(hTagFields, f)
 }
 
 func (f ExifField) Sep() string {

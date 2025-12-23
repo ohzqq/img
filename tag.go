@@ -1,11 +1,10 @@
-package imgtag
+package img
 
 import (
 	"encoding/xml"
 	"strings"
 
 	"github.com/samber/lo"
-	"github.com/spf13/cast"
 )
 
 type Tags struct {
@@ -18,6 +17,10 @@ type Tag struct {
 	Children []*Tag `xml:"Category"`
 }
 
+func NewTags() *Tags {
+	return &Tags{}
+}
+
 func UnmarshalHTags(d []byte) (*Tags, error) {
 	tags := &Tags{}
 	err := xml.Unmarshal(d, tags)
@@ -25,6 +28,10 @@ func UnmarshalHTags(d []byte) (*Tags, error) {
 		return tags, err
 	}
 	return tags, nil
+}
+
+func (t *Tags) UnmarshalXMP(d []byte) error {
+	return xml.Unmarshal(d, t)
 }
 
 func (t *Tags) StringSlice() []string {
@@ -40,14 +47,6 @@ func (t *Tags) IsEmpty() bool {
 	return len(t.Children) == 0
 }
 
-func FlatTags(tags []string) []*Tag {
-	t := []*Tag{}
-	for _, f := range tags {
-		t = append(t, NewFlatTag(f))
-	}
-	return t
-}
-
 func walkChildren(t *Tag) []string {
 	if t == nil {
 		return []string{}
@@ -57,6 +56,14 @@ func walkChildren(t *Tag) []string {
 		tags = append(tags, walkChildren(c)...)
 	}
 	return tags
+}
+
+func FlatTags(tags []string) []*Tag {
+	t := []*Tag{}
+	for _, f := range tags {
+		t = append(t, NewFlatTag(f))
+	}
+	return t
 }
 
 func NewFlatTag(val string) *Tag {
@@ -69,37 +76,12 @@ func NewFlatTag(val string) *Tag {
 	return tag
 }
 
-func cutTag(val string) (string, string, bool) {
-	return strings.Cut(val, "/")
-}
-
-func splitHTag(v string) []string {
-	return strings.Split(v, Separator)
-}
-
-func ParseExifTagValue(v any) []string {
-	switch p := v.(type) {
-	case string:
-		return []string{p}
-	default:
-		return cast.ToStringSlice(p)
-	}
+func HasChildren(tag string) bool {
+	return strings.ContainsRune(tag, '/')
 }
 
 func SplitTags(tag string) []string {
 	return strings.FieldsFunc(tag, SplitFunc)
-}
-
-func parseTag(tag string) string {
-	if strings.ContainsFunc(tag, SplitFunc) {
-		spl := SplitTags(tag)
-		return strings.Join(spl, Separator)
-	}
-	return tag
-}
-
-func HasChildren(tag string) bool {
-	return strings.ContainsRune(tag, '/')
 }
 
 func SplitFunc(c rune) bool {

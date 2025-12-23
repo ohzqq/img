@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/bep/imagemeta"
 	"github.com/hhrutter/tiff"
 	"github.com/samber/lo"
 )
@@ -66,6 +67,21 @@ func (f Format) SaveAll(output string, imgs []image.Image, opts ...EncodeOption)
 
 func (f Format) Encode(w io.Writer, img image.Image, opts ...EncodeOption) error {
 	return NewEncoder(f, opts...).Encode(w, img)
+}
+
+func (f Format) metaFmt() imagemeta.ImageFormat {
+	switch f {
+	case JPEG:
+		return imagemeta.JPEG
+	case PNG:
+		return imagemeta.PNG
+	case TIFF:
+		return imagemeta.TIFF
+	case WEBP:
+		return imagemeta.WebP
+	default:
+		return imagemeta.ImageFormatAuto
+	}
 }
 
 // FormatFromExtension parses image format from filename extension:
