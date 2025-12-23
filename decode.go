@@ -19,8 +19,8 @@ type Decoder struct {
 	xmp      xmp.XMP
 }
 
-func NewDecoder(name string) (*Decoder, error) {
-	i := &Decoder{
+func NewDecoder(name string, opts ...DecodeOption) (*Decoder, error) {
+	dec := &Decoder{
 		meta:  make(map[string]string),
 		opts:  imagemeta.Options{},
 		hTags: NewTags(),
@@ -30,15 +30,20 @@ func NewDecoder(name string) (*Decoder, error) {
 	if err != nil {
 		return nil, err
 	}
-	i.Fmt = imgFmt
-	i.xmp = xmp.XMP{
-		DC: xmp.DublinCore{
-			Identifier: name,
-			Format:     i.Fmt.ImageType(),
-		},
+	dec.Fmt = imgFmt
+	for _, opt := range opts {
+		opt(dec)
 	}
-	i.opts.ImageFormat = i.Fmt.metaFmt()
-	return i, nil
+	if dec.withMeta {
+		dec.xmp = xmp.XMP{
+			DC: xmp.DublinCore{
+				Identifier: name,
+				Format:     dec.Fmt.ImageType(),
+			},
+		}
+		dec.opts.ImageFormat = dec.Fmt.metaFmt()
+	}
+	return dec, nil
 }
 
 // Decode reads an image from r.
