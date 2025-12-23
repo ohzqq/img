@@ -69,13 +69,6 @@ func (i *Decoder) EncodeXMP(w io.Writer) error {
 	return enc.Encode(i.xmp)
 }
 
-var metaFmts = []imagemeta.ImageFormat{
-	imagemeta.JPEG,
-	imagemeta.TIFF,
-	imagemeta.PNG,
-	imagemeta.WebP,
-}
-
 var (
 	imgMetaFields = []ExifField{
 		Categories,

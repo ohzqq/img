@@ -11,11 +11,12 @@ import (
 )
 
 type Decoder struct {
-	hTags *Tags
-	Fmt   Format
-	meta  map[string]string
-	opts  imagemeta.Options
-	xmp   xmp.XMP
+	Fmt      Format
+	hTags    *Tags
+	withMeta bool
+	meta     map[string]string
+	opts     imagemeta.Options
+	xmp      xmp.XMP
 }
 
 func NewDecoder(name string) (*Decoder, error) {

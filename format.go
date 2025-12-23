@@ -89,8 +89,22 @@ func (f Format) ImageType() imagetype.ImageType {
 	return imagetype.FromString(f.String())
 }
 
+// MimeType returns the mimetype of the image format.
 func (f Format) MimeType() string {
 	return f.ImageType().String()
+}
+
+func (f *Format) UnmarshalText(text []byte) error {
+	format, err := FormatFromExtension(string(text))
+	if err != nil {
+		return err
+	}
+	*f = format
+	return nil
+}
+
+func (f Format) MarshalText() ([]byte, error) {
+	return []byte(f.String()), nil
 }
 
 // FormatFromExtension parses image format from filename extension:
@@ -98,6 +112,9 @@ func (f Format) MimeType() string {
 // ".b64 (or ".uue") and ".webp" are supported.
 func FormatFromExtension(ext string) (Format, error) {
 	ext = strings.ToLower(ext)
+	if !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
 	for index, exts := range formatExts {
 		if slices.Contains(exts, ext) {
 			return Format(index), nil
@@ -124,19 +141,6 @@ func IsValidFormat(name string) bool {
 
 func FormatFromFilename(name string) (Format, error) {
 	return FormatFromExtension(filepath.Ext(name))
-}
-
-func (f *Format) UnmarshalText(text []byte) error {
-	format, err := FormatFromExtension(string(text))
-	if err != nil {
-		return err
-	}
-	*f = format
-	return nil
-}
-
-func (f Format) MarshalText() ([]byte, error) {
-	return []byte(f.String()), nil
 }
 
 var (

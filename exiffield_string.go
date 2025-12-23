@@ -9,12 +9,12 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[Title-0]
-	_ = x[Source-1]
-	_ = x[Byline-2]
-	_ = x[Credit-3]
-	_ = x[Rights-4]
-	_ = x[Copyright-5]
-	_ = x[Caption-6]
+	_ = x[Caption-1]
+	_ = x[Source-2]
+	_ = x[Byline-3]
+	_ = x[Credit-4]
+	_ = x[Rights-5]
+	_ = x[Copyright-6]
 	_ = x[UserComment-7]
 	_ = x[Description-8]
 	_ = x[Notes-9]
@@ -36,9 +36,9 @@ func _() {
 	_ = x[SourceFile-25]
 }
 
-const _ExifField_name = "TitleSourceBylineCreditRightsCopyrightCaptionUserCommentDescriptionNotesImageDescriptionCatalogSetsHierarchicalSubjectLastKeywordXMPSubjectKeywordsCategoriesTagsListImageHeightImageWidthMIMETypeFileTypeExtensionWebP_FlagsDurationFileNameSourceFile"
+const _ExifField_name = "TitleCaptionSourceBylineCreditRightsCopyrightUserCommentDescriptionNotesImageDescriptionCatalogSetsHierarchicalSubjectLastKeywordXMPSubjectKeywordsCategoriesTagsListImageHeightImageWidthMIMETypeFileTypeExtensionWebP_FlagsDurationFileNameSourceFile"
 
-var _ExifField_index = [...]uint8{0, 5, 11, 17, 23, 29, 38, 45, 56, 67, 72, 88, 99, 118, 132, 139, 147, 157, 165, 176, 186, 194, 211, 221, 229, 237, 247}
+var _ExifField_index = [...]uint8{0, 5, 12, 18, 24, 30, 36, 45, 56, 67, 72, 88, 99, 118, 132, 139, 147, 157, 165, 176, 186, 194, 211, 221, 229, 237, 247}
 
 func (i ExifField) String() string {
 	idx := int(i) - 0

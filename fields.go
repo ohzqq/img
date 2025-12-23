@@ -9,7 +9,9 @@ import (
 type ExifField int
 
 const (
+	// title fields
 	Title ExifField = iota
+	Caption
 	// creator fields
 	Source
 	Byline
@@ -17,7 +19,6 @@ const (
 	Rights
 	Copyright
 	// caption fields
-	Caption
 	UserComment
 	Description
 	Notes
@@ -64,8 +65,12 @@ var flatTagFields = []ExifField{
 	Subject,
 }
 
-var captionFields = []ExifField{
+var titleFields = []ExifField{
+	Title,
 	Caption,
+}
+
+var captionFields = []ExifField{
 	UserComment,
 	Description,
 	Notes,
