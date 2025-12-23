@@ -3,64 +3,31 @@ package img
 import (
 	"encoding/xml"
 	"io"
-	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/bep/imagemeta"
-	"github.com/evanoberholster/imagemeta/imagetype"
 	"github.com/evanoberholster/imagemeta/xmp"
 	"github.com/spf13/cast"
 )
 
-type Img struct {
-	hTags *Tags
-	Fmt   Format
-	meta  map[string]string
-	opts  imagemeta.Options
-	xmp   xmp.XMP
-}
-
-func NewImg(name string) (*Img, error) {
-	i := &Img{
-		meta:  make(map[string]string),
-		opts:  imagemeta.Options{},
-		hTags: NewTags(),
-	}
-	ext := filepath.Ext(name)
-	f := imagetype.FromString(ext)
-	i.xmp = xmp.XMP{
-		DC: xmp.DublinCore{
-			Identifier: name,
-			Format:     f,
-		},
-	}
-	for _, ifmt := range metaFmts {
-		it := imagetype.FromString("." + ifmt.String())
-		if it == f {
-			i.opts.ImageFormat = ifmt
-		}
-	}
-	return i, nil
-}
-
-func (meta *Img) DublinCore() xmp.DublinCore {
+func (meta *Decoder) DublinCore() xmp.DublinCore {
 	return meta.xmp.DC
 }
 
-func (meta *Img) SetField(f string, val string) *Img {
+func (meta *Decoder) SetField(f string, val string) *Decoder {
 	meta.meta[f] = val
 	return meta
 }
 
-func (meta *Img) GetField(f string) string {
+func (meta *Decoder) GetField(f string) string {
 	if v, ok := meta.meta[f]; ok {
 		return v
 	}
 	return ""
 }
 
-func (i *Img) DecodeMeta(r io.ReadSeeker) error {
+func (i *Decoder) DecodeMeta(r io.ReadSeeker) error {
 	var tags imagemeta.Tags
 	i.opts.HandleTag = func(ti imagemeta.TagInfo) error {
 		if slices.Contains(imgMetaFieldsStr, ti.Tag) {
@@ -96,7 +63,7 @@ func (i *Img) DecodeMeta(r io.ReadSeeker) error {
 	return nil
 }
 
-func (i *Img) EncodeXMP(w io.Writer) error {
+func (i *Decoder) EncodeXMP(w io.Writer) error {
 	enc := xml.NewEncoder(w)
 	enc.Indent("", "  ")
 	return enc.Encode(i.xmp)

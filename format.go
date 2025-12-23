@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/bep/imagemeta"
+	"github.com/evanoberholster/imagemeta/imagetype"
 	"github.com/hhrutter/tiff"
 	"github.com/samber/lo"
 )
@@ -82,6 +83,14 @@ func (f Format) metaFmt() imagemeta.ImageFormat {
 	default:
 		return imagemeta.ImageFormatAuto
 	}
+}
+
+func (f Format) ImageType() imagetype.ImageType {
+	return imagetype.FromString(f.String())
+}
+
+func (f Format) MimeType() string {
+	return f.ImageType().String()
 }
 
 // FormatFromExtension parses image format from filename extension:

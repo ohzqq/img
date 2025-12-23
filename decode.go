@@ -4,7 +4,41 @@ import (
 	"image"
 	"io"
 	"os"
+	"path/filepath"
+
+	"github.com/bep/imagemeta"
+	"github.com/evanoberholster/imagemeta/xmp"
 )
+
+type Decoder struct {
+	hTags *Tags
+	Fmt   Format
+	meta  map[string]string
+	opts  imagemeta.Options
+	xmp   xmp.XMP
+}
+
+func NewDecoder(name string) (*Decoder, error) {
+	i := &Decoder{
+		meta:  make(map[string]string),
+		opts:  imagemeta.Options{},
+		hTags: NewTags(),
+	}
+	ext := filepath.Ext(name)
+	imgFmt, err := FormatFromExtension(ext)
+	if err != nil {
+		return nil, err
+	}
+	i.Fmt = imgFmt
+	i.xmp = xmp.XMP{
+		DC: xmp.DublinCore{
+			Identifier: name,
+			Format:     i.Fmt.ImageType(),
+		},
+	}
+	i.opts.ImageFormat = i.Fmt.metaFmt()
+	return i, nil
+}
 
 // Decode reads an image from r.
 // If want to use custom image format packages which were registered in image package, please
