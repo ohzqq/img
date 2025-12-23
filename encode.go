@@ -147,7 +147,7 @@ func (enc *Encoder) AnimatedWEBP(output string, images []string) error {
 		enc.webpAnimation.Disposals = make([]uint, len(images))
 	}
 	for i, file := range images {
-		img, err := Open(file)
+		img, err := open(file)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,10 @@
 package img
 
-import "testing"
+import (
+	"testing"
+
+	qt "github.com/frankban/quicktest"
+)
 
 func TestAnimation(t *testing.T) {
 	tstImgs := []string{
@@ -16,6 +20,17 @@ func TestAnimation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestConvert(t *testing.T) {
+	c := qt.New(t)
+	tstImg := `testdata/video-001.png`
+	img, err := NewImg(tstImg)
+	c.Assert(err, qt.IsNil)
+
+	outImg := `testdata/convert.jpg`
+	err = img.SaveAs(outImg)
+	c.Assert(err, qt.IsNil)
 }
 
 func TestBatch(t *testing.T) {

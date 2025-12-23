@@ -20,7 +20,7 @@ func TestValidFormat(t *testing.T) {
 
 func TestSaveFormat(t *testing.T) {
 	tstImg := `testdata/video-001.png`
-	img, err := Open(tstImg)
+	img, err := open(tstImg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestSaveFormat(t *testing.T) {
 
 func TestBase64(t *testing.T) {
 	tstImg := `testdata/video-001.png`
-	img, err := Open(tstImg)
+	img, err := open(tstImg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestBase64(t *testing.T) {
 
 func TestDataURL(t *testing.T) {
 	tstImg := `testdata/video-001.png`
-	img, err := Open(tstImg)
+	img, err := open(tstImg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestDataURL(t *testing.T) {
 
 func TestHTML(t *testing.T) {
 	tstImg := `testdata/video-001.png`
-	img, err := Open(tstImg)
+	img, err := open(tstImg)
 	if err != nil {
 		t.Fatal(err)
 	}
