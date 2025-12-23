@@ -25,7 +25,7 @@ func TestAnimation(t *testing.T) {
 func TestConvert(t *testing.T) {
 	c := qt.New(t)
 	tstImg := `testdata/video-001.png`
-	img, err := NewImg(tstImg)
+	img, err := New(tstImg)
 	c.Assert(err, qt.IsNil)
 
 	outImg := `testdata/convert.jpg`

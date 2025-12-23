@@ -10,7 +10,7 @@ import (
 
 	"github.com/evanoberholster/imagemeta/xmp"
 	"github.com/goccy/go-yaml"
-	"github.com/ohzqq/imgtag"
+	"github.com/ohzqq/img"
 	"github.com/spf13/cobra"
 )
 
@@ -140,8 +140,8 @@ func encodeYAML(w io.Writer, meta any) error {
 	return enc.Encode(meta)
 }
 
-func decodeManyMuchMeta(args []string) ([]*imgtag.Img, error) {
-	imgs := make([]*imgtag.Img, len(args))
+func decodeManyMuchMeta(args []string) ([]*img.Img, error) {
+	imgs := make([]*img.Img, len(args))
 	for i, arg := range args {
 		im, err := decodeMeta(arg)
 		if err != nil {
@@ -152,17 +152,12 @@ func decodeManyMuchMeta(args []string) ([]*imgtag.Img, error) {
 	return imgs, nil
 }
 
-func decodeMeta(name string) (*imgtag.Img, error) {
-	i, err := imgtag.NewImg(name)
+func decodeMeta(name string) (*img.Img, error) {
+	i, err := img.New(name)
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	err = i.DecodeMeta(f)
+	err = i.ReadMeta()
 	if err != nil {
 		return nil, err
 	}

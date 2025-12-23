@@ -20,7 +20,7 @@ type Img struct {
 	withMeta bool
 }
 
-func NewImg(name string) (*Img, error) {
+func New(name string) (*Img, error) {
 	img := &Img{
 		file: name,
 	}

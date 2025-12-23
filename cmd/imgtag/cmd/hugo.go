@@ -50,5 +50,5 @@ var hugoCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(hugoCmd)
-	hugoCmd.Flags().StringVarP(&hugoTitle, "name", "n", "", "name of post")
+	hugoCmd.Flags().StringVarP(&hugoTitle, "name", "n", "title", "name of post")
 }

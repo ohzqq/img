@@ -19,6 +19,7 @@ require (
 	github.com/frankban/quicktest v1.14.6 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gen2brain/webp v0.5.5 // indirect
+	github.com/goccy/go-yaml v1.19.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hhrutter/lzw v1.0.0 // indirect

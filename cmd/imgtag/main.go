@@ -1,9 +1,6 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package main
 
-import "github.com/ohzqq/imgtag/cmd/cmd"
+import "github.com/ohzqq/img/cmd/imgtag/cmd"
 
 func main() {
 	cmd.Execute()

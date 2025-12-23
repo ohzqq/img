@@ -43,7 +43,7 @@ func (dec *Decoder) Decode(f Format) (image.Image, error) {
 }
 
 func Open(file string, withMeta bool) (*Img, error) {
-	img, err := NewImg(file)
+	img, err := New(file)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (dec *Decoder) DecodeXMP(r io.ReadSeeker) (xmp.XMP, error) {
 // open loads an image from file.
 // https://github.com/sunshineplan/imgconv
 func open(file string) (image.Image, error) {
-	img, err := NewImg(file)
+	img, err := New(file)
 	if err != nil {
 		return nil, err
 	}
